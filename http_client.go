@@ -12,23 +12,10 @@ func main() {
 		Name:  "http client",
 		Usage: "for test the http request",
 		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name: "method，m",
-				//Aliases: []string{"m"},
-				Usage: "the http method",
-				//Aliases:[]string{"m"},
-				Value: "get",
-			},
+			BODY,
 		},
 		Commands: []*cli.Command{
-			{
-				Name:  "get",
-				Usage: "send get request",
-				Action: func(c *cli.Context) error {
-					fmt.Println("GET")
-					return nil
-				},
-			},
+			GET,
 		},
 		Action: func(c *cli.Context) error {
 			arg := c.Args().Get(0)
