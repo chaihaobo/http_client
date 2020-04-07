@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"log"
 	"os"
+	"reducer/httpclient/command"
+	"reducer/httpclient/flag"
 )
 
 func main() {
@@ -12,10 +14,10 @@ func main() {
 		Name:  "http client",
 		Usage: "for test the http request",
 		Flags: []cli.Flag{
-			BODY,
+			flag.BODY,
 		},
 		Commands: []*cli.Command{
-			GET,
+			command.GET,
 		},
 		Action: func(c *cli.Context) error {
 			arg := c.Args().Get(0)
@@ -28,4 +30,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 }

@@ -1,6 +1,6 @@
-package main
+package flag
 
-import "github.com/urfave/cli"
+import "github.com/urfave/cli/v2"
 
 var (
 	BODY = &cli.StringFlag{
@@ -19,3 +19,7 @@ var (
 		Aliases: []string{"c"},
 	}
 )
+
+func Add(a int, b int) int {
+	return a + b
+}
