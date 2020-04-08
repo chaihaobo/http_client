@@ -1,19 +1,46 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/kirinlabs/HttpRequest"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
+var db *sql.DB
+
+const sql_table = `
+ CREATE TABLE IF NOT EXISTS request_info(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url VARCHAR(255) NULL,
+        method VARCHAR(255) NULL,
+        header VARCHAR(255) NULL,
+		cookie VARCHAR(255) NULL,
+		body VARCHAR(255) NULL,
+		response_code INTEGER ,
+		response_body NVARCHAR(4000),
+        created DATE NULL
+    );`
+
 func main() {
+	homeDir, _ := os.UserHomeDir()
+
+	db, _ = sql.Open("sqlite3", homeDir+"/.httpclient.db")
+	_, err2 := db.Exec(sql_table)
+	if err2 != nil {
+		fmt.Println(err2.Error())
+	}
+	log.Println("sql lite 连接成功!")
 	app := &cli.App{
-		Name:  "HttpClient",
-		Usage: "HttpClient命令行版本",
+		Name:    "HttpClient",
+		Usage:   "HttpClient命令行版本",
+		Version: "v1.0.0",
 		Flags: []cli.Flag{
 			BODY,
 			HEADER,
@@ -24,10 +51,16 @@ func main() {
 			POST,
 			DELETE,
 			PUT,
+			HISTORY,
 		},
 		Action: func(c *cli.Context) error {
-			fmt.Println("输入help或者-h获取使用帮助")
-			return nil
+			cli.ShowAppHelp(c)
+			cli.VersionPrinter = func(c *cli.Context) {
+				fmt.Fprintf(c.App.Writer, "version=%s\n", c.App.Version)
+			}
+			cli.ShowVersion(c)
+			ec := cli.Exit("", 86)
+			return ec
 		},
 	}
 	err := app.Run(os.Args)
@@ -72,21 +105,32 @@ func sendHttpRequest(method int, c *cli.Context) {
 		}
 		req.SetCookies(cookieMap)
 	}
+	var response *HttpRequest.Response
+	var err error
+	var methodStr string
 	switch method {
 	case get:
-		response, err := req.Get(url, body)
+		methodStr = "GET"
+		response, err = req.Get(url, body)
 		finishResponse(response, err)
 	case post:
-		response, err := req.Post(url, body)
+		methodStr = "POST"
+		response, err = req.Post(url, body)
 		finishResponse(response, err)
 	case delete:
-		response, err := req.Delete(url, body)
+		methodStr = "DELETE"
+		response, err = req.Delete(url, body)
 		finishResponse(response, err)
 	case put:
-		response, err := req.Put(url, body)
+		methodStr = "PUT"
+		response, err = req.Put(url, body)
 		finishResponse(response, err)
 	}
 
+	//请求记录
+	prepare, err := db.Prepare("INSERT INTO request_info(url,method,header,cookie,body,response_code,response_body,created) values (?,?,?,?,?,?,?,?)")
+	bytes, err := response.Body()
+	prepare.Exec(url, methodStr, header, cookie, body, response.StatusCode(), string(bytes), time.Now())
 }
 
 //响应处理
@@ -162,6 +206,46 @@ var (
 			}
 
 			sendHttpRequest(delete, c)
+			return nil
+		},
+	}
+	HISTORY = &cli.Command{
+		Name:  "history",
+		Usage: "历史信息",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:     "more",
+				Usage:    "输出响应体",
+				Aliases:  []string{"M"},
+				Required: false,
+				Value:    false,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			var id int
+			var url string
+			var method string
+			var header string
+			var cookie string
+			var body string
+			var code int
+			var response_body string
+			var created time.Time
+			more := c.Bool("more")
+			rows, _ := db.Query("SELECT * FROM request_info order by created desc")
+			if more {
+				fmt.Println("[id]	[url]	[method]	[header]	[cookie]	[body]	[code]	[responseBody]	[createdTime]")
+			} else {
+				fmt.Println("[id]	[url]	[method]	[header]	[cookie]	[body]	[code]	[createdTime]")
+			}
+			for rows.Next() {
+				rows.Scan(&id, &url, &method, &header, &cookie, &body, &code, &response_body, &created)
+				if more {
+					fmt.Println(id, "=>", url, "=>", code, "=>", header, "=>", cookie, "=>", body, "=>", method, "=>", response_body, "=>", created.Format("2006-01-02 15:04:05"))
+				} else {
+					fmt.Println(id, "=>", url, "=>", code, "=>", header, "=>", cookie, "=>", body, "=>", method, "=>", created.Format("2006-01-02 15:04:05"))
+				}
+			}
 			return nil
 		},
 	}
