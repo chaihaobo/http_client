@@ -10,17 +10,10 @@ import (
 	"strings"
 )
 
-const (
-	get    = 0
-	post   = 1
-	delete = 2
-	put    = 3
-)
-
 func main() {
 	app := &cli.App{
-		Name:  "http client",
-		Usage: "to test the http request",
+		Name:  "HttpClient",
+		Usage: "HttpClient命令行版本",
 		Flags: []cli.Flag{
 			BODY,
 			HEADER,
@@ -33,7 +26,7 @@ func main() {
 			PUT,
 		},
 		Action: func(c *cli.Context) error {
-			fmt.Println("input `help` or `-h` for details")
+			fmt.Println("输入help或者-h获取使用帮助")
 			return nil
 		},
 	}
@@ -43,6 +36,13 @@ func main() {
 	}
 
 }
+
+const (
+	get    = 0
+	post   = 1
+	delete = 2
+	put    = 3
+)
 
 //发送http请求
 func sendHttpRequest(method int, c *cli.Context) {
