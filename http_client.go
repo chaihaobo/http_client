@@ -36,7 +36,6 @@ func main() {
 	if err2 != nil {
 		fmt.Println(err2.Error())
 	}
-	log.Println("sql lite 连接成功!")
 	app := &cli.App{
 		Name:    "HttpClient",
 		Usage:   "HttpClient命令行版本",
